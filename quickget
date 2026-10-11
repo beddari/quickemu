@@ -1232,6 +1232,11 @@ function arch_fedora() {
     esac
 }
 
+function arch_windows() {
+    # Windows 10 is amd64 only; download_windows_workstation says so
+    echo "amd64 arm64"
+}
+
 function arch_ubuntu-server() {
     echo "amd64 arm64"
 }
@@ -3472,7 +3477,16 @@ function download_windows_workstation() {
     local url="https://www.microsoft.com/en-us/software-download/windows$windows_version"
     case "$windows_version" in
         10) url="${url}ISO";;
+        11) [ "${ARCH}" == "arm64" ] && url="${url}arm64";;
     esac
+    if [ "${ARCH}" == "arm64" ] && [ "${windows_version}" != "11" ]; then
+        echo "ERROR! Windows ${windows_version} is not available for arm64. Use Windows 11."
+        return 1
+    fi
+
+    # The ISO for the arch: x64 or Arm64
+    local iso_arch="x64"
+    [ "${ARCH}" == "arm64" ] && iso_arch="Arm64"
 
     local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
     session_id="$(uuidgen)"
@@ -3520,9 +3534,13 @@ function download_windows_workstation() {
     local rticks="$(echo "$mdt_js_response" | grep -Eo 'rticks="?\+?[0-9]+' | head -1)"
     rticks="${rticks##*[=\"+]}"
 
+    # Milliseconds; BSD date has no %N, so whole seconds will do there
     local current_time="$(date +%s%3N)"
+    case "$current_time" in
+        *N) current_time="$(date +%s)000";;
+    esac
 
-    curl --disable --silent --user-agent "$user_agent" --header "Accept:" --max-filesize 100K --fail --proto =https --tlsv1.2 --http1.1 -- "https://ov-df.microsoft.com/?session_id={$session_id}&CustomerId={$instanceId}&PageId=si&w={$w}&mdt={$current_time}&rticks={$rticks}" || {
+    curl --disable --silent --output /dev/null --user-agent "$user_agent" --header "Accept:" --max-filesize 100K --fail --proto =https --tlsv1.2 --http1.1 -- "https://ov-df.microsoft.com/?session_id={$session_id}&CustomerId={$instanceId}&PageId=si&w={$w}&mdt={$current_time}&rticks={$rticks}" || {
         handle_curl_error $?
         return $?
     }
@@ -3566,8 +3584,8 @@ function download_windows_workstation() {
         return 1
     fi
 
-    # Filter for 64-bit ISO download URL
-    iso_download_link="$(echo "${iso_download_link_json}" | jq -r '.ProductDownloadOptions[].Uri' | grep x64)"
+    # Filter for the ISO download URL of the arch
+    iso_download_link="$(echo "${iso_download_link_json}" | jq -r '.ProductDownloadOptions[].Uri' | grep -i "_${iso_arch}" | head -n 1)"
 
     if ! [ "$iso_download_link" ]; then
         # This should only happen if there's been some change to the download endpoint web address
