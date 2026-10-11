@@ -1409,12 +1409,11 @@ function configure_display() {
     esac
 
     # Build the video configuration
-    # The ids name the devices for the monitor: screendump FILE -f png video0
-    VIDEO="${VGA:+${VGA} }-device ${DISPLAY_DEVICE},id=video0"
+    VIDEO="${VGA:+${VGA} }-device ${DISPLAY_DEVICE}"
 
     # ARM64 needs ramfb for UEFI boot display before virtio-gpu driver loads
     if [ "${ARCH_VM}" == "aarch64" ]; then
-        VIDEO="-device ramfb,id=ramfb0 ${VIDEO}"
+        VIDEO="-device ramfb ${VIDEO}"
     fi
 
     # Set display resolution for devices that support xres/yres parameters
