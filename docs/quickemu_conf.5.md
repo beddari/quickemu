@@ -44,6 +44,9 @@ preallocation="off"
 ram=""
 secureboot="off"
 tpm="off"
+# aarch64 only: off leaves out ramfb, the boot screen beside the GPU, once
+# the guest has a virtio-gpu driver
+ramfb="on"
 usb_devices=()
 viewer="spicy"
 ssh_port=""

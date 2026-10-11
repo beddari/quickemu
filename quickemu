@@ -1412,8 +1412,10 @@ function configure_display() {
     # The ids name the devices for the monitor: screendump FILE -f png video0
     VIDEO="${VGA:+${VGA} }-device ${DISPLAY_DEVICE},id=video0"
 
-    # ARM64 needs ramfb for UEFI boot display before virtio-gpu driver loads
-    if [ "${ARCH_VM}" == "aarch64" ]; then
+    # ARM64 needs ramfb for UEFI boot display before virtio-gpu driver loads;
+    # ramfb="off" leaves it out once the guest has that driver, so that the
+    # guest does not see a second screen
+    if [ "${ARCH_VM}" == "aarch64" ] && [ "${ramfb}" != "off" ]; then
         VIDEO="-device ramfb,id=ramfb0 ${VIDEO}"
     fi
 
@@ -2623,6 +2625,7 @@ usb_devices=()
 viewer="${viewer:-spicy}"
 width="${width:-}"
 height="${height:-}"
+ramfb="${ramfb:-on}"
 ssh_port="${ssh_port:-}"
 spice_port="${spice_port:-}"
 monitor="${monitor:-socket}"
